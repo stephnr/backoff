@@ -22,11 +22,11 @@ type ExponentialTestSuite struct {
 func (st *ExponentialTestSuite) SetupTest() {
 	st.service, _ = backoff.New(&backoff.Policy{
 		Algorithm:           backoff.AlgorithmExponential,
-		StartInterval:       time.Duration(time.Millisecond * 100),
+		StartInterval:       time.Duration(time.Nanosecond * 100),
 		RandomizationFactor: 0.5,
 		IntervalMultiplier:  0.5,
-		MaxInterval:         time.Duration(time.Millisecond * 500),
-		MaxElapsedTime:      time.Duration(time.Second * 2),
+		MaxInterval:         time.Duration(time.Nanosecond * 500),
+		MaxElapsedTime:      time.Duration(time.Second * 1),
 	})
 
 	st.mockFunc = &MockFunction{}
@@ -57,7 +57,7 @@ func (st *ExponentialTestSuite) TestBadAction() {
 	err := st.service.ExecuteAction(st.mockFunc.BadAction)
 
 	assert.Error(st.T(), err)
-	assert.True(st.T(), time.Since(startTime).Nanoseconds() >= 500000000)
+	assert.True(st.T(), time.Since(startTime).Nanoseconds() >= 1000)
 }
 
 func (st *ExponentialTestSuite) TestGoodAction() {
@@ -65,7 +65,7 @@ func (st *ExponentialTestSuite) TestGoodAction() {
 	err := st.service.ExecuteAction(st.mockFunc.GoodAction)
 
 	assert.Nil(st.T(), err)
-	assert.True(st.T(), time.Since(startTime).Nanoseconds() < 500000000)
+	assert.True(st.T(), time.Since(startTime).Seconds() < 1)
 }
 
 func (st *ExponentialTestSuite) TestBadFunction() {
@@ -73,7 +73,7 @@ func (st *ExponentialTestSuite) TestBadFunction() {
 	_, err := st.service.ExecuteFunction(st.mockFunc.BadFunction)
 
 	assert.Error(st.T(), err)
-	assert.True(st.T(), time.Since(startTime).Nanoseconds() >= 500000000)
+	assert.True(st.T(), time.Since(startTime).Nanoseconds() >= 1000)
 }
 
 func (st *ExponentialTestSuite) TestGoodFunction() {
@@ -82,7 +82,7 @@ func (st *ExponentialTestSuite) TestGoodFunction() {
 
 	assert.Nil(st.T(), err)
 	assert.NotNil(st.T(), output)
-	assert.True(st.T(), time.Since(startTime).Nanoseconds() < 500000000)
+	assert.True(st.T(), time.Since(startTime).Seconds() < 1)
 }
 
 func (st *ExponentialTestSuite) TestMaxIntervial() {
