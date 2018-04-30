@@ -24,7 +24,9 @@ Supported Algorithms:
 
 To install backoff, use `go get`:
 
-> go get github.com/defaltd/backoff
+```
+go get github.com/defaltd/backoff
+```
 
 Import the `backoff` package into your code using this template:
 
