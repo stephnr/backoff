@@ -29,7 +29,7 @@ func New(policy *Policy) (ServiceAPI, error) {
 	case AlgorithmExponential:
 		service.ServiceAPI = &ExponentialBackoff{}
 	default:
-		return nil, errors.New("The provided backoff algorithm is not valid")
+		return nil, errors.New("The selected backoff algorithm is not valid")
 	}
 
 	service.Setup(policy)
