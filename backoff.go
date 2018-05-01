@@ -2,6 +2,7 @@ package backoff
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -21,9 +22,21 @@ type Policy struct {
 	MaxElapsedTime      time.Duration
 }
 
+func validPolicy(policy *Policy) error {
+	if policy.RandomizationFactor < 0 || policy.RandomizationFactor > 1 {
+		return fmt.Errorf("the provided randomization factor of [ %f ] is not allowed. The allowed range of values is from 0 to 1", policy.RandomizationFactor)
+	}
+
+	return nil
+}
+
 // New constructs an instance of the Backoff Service for retrying an operation.
 func New(policy *Policy) (ServiceAPI, error) {
 	service := &Service{Policy: *policy}
+
+	if err := validPolicy(policy); err != nil {
+		return nil, err
+	}
 
 	switch policy.Algorithm {
 	case AlgorithmExponential:
