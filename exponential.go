@@ -17,20 +17,24 @@ const (
 	DefaultExponentialMaxInterval = 60 * time.Second
 	// DefaultExponentialMaxElapsedTime is the maximum time that the backoff can run for before exiting.
 	DefaultExponentialMaxElapsedTime = 15 * time.Minute
+	// DefaultExponentialMaxRetryCount is the maximum number of tries the backoff should execute before exiting.
+	DefaultExponentialMaxRetryCount = 0
 )
 
 // ExponentialBackoff is a BackoffServiceAPI that implements the exponential backoff algorithm.
 type ExponentialBackoff struct {
-	InitialInterval    time.Duration
-	RandFactor         float64
-	IntervalMultiplier float64
-	MaxInterval        time.Duration
-	MaxElapsedTime     time.Duration
 	Clock              Clock
+	InitialInterval    time.Duration
+	IntervalMultiplier float64
+	MaxElapsedTime     time.Duration
+	MaxInterval        time.Duration
+	RandFactor         float64
+	MaxRetryCount      int64
 
 	currentInterval time.Duration
 	startTime       time.Time
 	random          *rand.Rand
+	tries           int64
 }
 
 // Setup accepts a Policy struct and sets the backoff execution properties with defaults for properties undeclared.
@@ -55,6 +59,10 @@ func (bckOff *ExponentialBackoff) Setup(policy *Policy) {
 
 	if int64(policy.MaxElapsedTime) != 0 {
 		bckOff.MaxElapsedTime = policy.MaxElapsedTime
+	}
+
+	if policy.MaxRetryCount != 0 {
+		bckOff.MaxRetryCount = policy.MaxRetryCount
 	}
 
 }
@@ -116,7 +124,10 @@ func (bckOff *ExponentialBackoff) ExecuteAction(op Action) error {
 // NextBackOff determines the amount of time to wait before executing again.
 // The function also updates certain properties for the next backoff cycle.
 func (bckOff *ExponentialBackoff) NextBackOff() time.Duration {
-	if bckOff.MaxElapsedTime != 0 && bckOff.ElapsedTime() > bckOff.MaxElapsedTime {
+	bckOff.tries++
+
+	if (bckOff.MaxElapsedTime != 0 && bckOff.ElapsedTime() > bckOff.MaxElapsedTime) ||
+		(bckOff.tries >= bckOff.MaxRetryCount && bckOff.MaxRetryCount >= 1) {
 		return -1
 	}
 
@@ -143,17 +154,19 @@ func (bckOff *ExponentialBackoff) ElapsedTime() time.Duration {
 
 // ResetDefaults sets the properties of the backoff service to their API defaults. See constants prefixed with DefaultExponential.
 func (bckOff *ExponentialBackoff) ResetDefaults() {
-	bckOff.InitialInterval = DefaultExponentialInitialInterval
-	bckOff.RandFactor = DefaultExponentialRandFactor
-	bckOff.IntervalMultiplier = DefaultExponentialMultiplier
-	bckOff.MaxInterval = DefaultExponentialMaxInterval
-	bckOff.MaxElapsedTime = DefaultExponentialMaxElapsedTime
 	bckOff.Clock = &SystemClock{}
+	bckOff.InitialInterval = DefaultExponentialInitialInterval
+	bckOff.IntervalMultiplier = DefaultExponentialMultiplier
+	bckOff.MaxElapsedTime = DefaultExponentialMaxElapsedTime
+	bckOff.MaxInterval = DefaultExponentialMaxInterval
+	bckOff.RandFactor = DefaultExponentialRandFactor
+	bckOff.MaxRetryCount = DefaultExponentialMaxRetryCount
 }
 
 // Reset is ran prior to executing the start of a backoff cycle in order to properly calculate for elapsed time and other variables.
 func (bckOff *ExponentialBackoff) Reset() {
-	bckOff.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	bckOff.currentInterval = bckOff.InitialInterval
+	bckOff.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	bckOff.startTime = bckOff.Clock.Now()
+	bckOff.tries = 0
 }

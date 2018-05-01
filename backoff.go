@@ -15,11 +15,12 @@ type Service struct {
 // A Policy represents the requirements for a backoff retry operation.
 type Policy struct {
 	Algorithm           Algorithm
-	RandomizationFactor float64
 	IntervalMultiplier  float64
-	StartInterval       time.Duration
-	MaxInterval         time.Duration
 	MaxElapsedTime      time.Duration
+	MaxInterval         time.Duration
+	MaxRetryCount       int64
+	RandomizationFactor float64
+	StartInterval       time.Duration
 }
 
 func validPolicy(policy *Policy) error {
